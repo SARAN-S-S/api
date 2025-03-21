@@ -77,7 +77,7 @@ app.get("*", (req, res) => {
 });
 
 // Start Server
-app.listen(PORTprocess.env.PORT ||"7733", () => {
+app.listen(process.env.PORT ||"7733", () => {
     console.log("Backend is running.");
 });
 
