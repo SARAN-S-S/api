@@ -86,6 +86,14 @@ app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 app.use("/api/stats", statsRoute);
 
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "..", "discuss-app", "build")));
+
+// Serve index.html for all other routes (client-side routing)
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "discuss-app", "build", "index.html"));
+});
+
 // Start Server
 app.listen(process.env.PORT || "7733", () => {
     console.log("Backend is running.");
