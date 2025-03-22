@@ -20,7 +20,7 @@ dotenv.config();
 app.use(express.json());
 
 // CORS Configuration
-const allowedOrigins = ["https://achievehub-3ul1.onrender.com", "http://localhost:3000"];
+const allowedOrigins = ["https://achievehub-blog.onrender.com", "http://localhost:3000"];
 app.use(
     cors({
         origin: function (origin, callback) {
