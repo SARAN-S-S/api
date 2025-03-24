@@ -13,9 +13,26 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const path = require("path");
 
+// Load environment variables
 dotenv.config();
+
+// Middleware
 app.use(express.json());
-app.use(cors());
+
+// CORS Configuration
+const allowedOrigins = ["https://achievehub-blog.onrender.com", "http://localhost:3000"];
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        credentials: true,
+    })
+);
 
 // MongoDB Connection
 mongoose
@@ -102,14 +119,17 @@ app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 app.use("/api/stats", statsRoute);
 
-// Serve index.html for all unknown routes (Fallback for React Router)
-app.use(express.static("build"));
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "..", "discuss-app", "build")));
+
+// Handle React routing, return all requests to React app
 app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "build", "index.html"));
+  res.sendFile(path.join(__dirname, "..", "discuss-app", "build", "index.html"));
 });
 
+
 // Start Server
-app.listen("7733" || process.env.PORT, () => {
+app.listen(process.env.PORT || "7733", () => {
     console.log("Backend is running.");
 });
 
@@ -117,6 +137,4 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-
 module.exports = app;
-
