@@ -119,14 +119,20 @@ app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 app.use("/api/stats", statsRoute);
 
+// Define frontend build path
+const frontendPath = path.join(__dirname, "..", "discuss-app", "build");
+
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, "..", "discuss-app", "build")));
+app.use(express.static(frontendPath));
 
-// Handle React routing, return all requests to React app
+// Handle React routing correctly
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "discuss-app", "build", "index.html"));
+    res.sendFile(path.join(frontendPath, "index.html"), (err) => {
+        if (err) {
+            res.status(500).send(err);
+        }
+    });
 });
-
 
 // Start Server
 app.listen(process.env.PORT || "7733", () => {
