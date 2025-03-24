@@ -12,15 +12,18 @@ const PostSchema = new mongoose.Schema({
     },
     photo: {
         type: String,
-        required: false,
+    },
+    video: {
+        type: String,
+        default: "",
     },
     username: {
         type: String,
         required: true,
     },
     tags: {
-      type: [String], 
-      default: [],
+        type: [String],
+        default: [],
     },
     likes: {
         type: Number,
@@ -35,8 +38,6 @@ const PostSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
-}, 
-    { timestamps: true }
-);
+}, { timestamps: true });
 
 module.exports = mongoose.model("Post", PostSchema);

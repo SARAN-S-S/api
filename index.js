@@ -1,4 +1,5 @@
 const express = require("express");
+const app = express();
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const authRoute = require("./routes/auth");
@@ -12,98 +13,110 @@ const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const path = require("path");
 
-// Load environment variables
 dotenv.config();
-
-// Middleware
-const app = express();
 app.use(express.json());
-
-// CORS Configuration
-const allowedOrigins = [
-  "https://achievehub-blog.onrender.com",
-  "http://localhost:3000",
-];
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors());
 
 // MongoDB Connection
 mongoose
-  .connect(process.env.MONGO_URL)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.log(err));
+    .connect(process.env.MONGO_URL)
+    .then(() => console.log("Connected to MongoDB"))
+    .catch((err) => console.log(err));
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Multer Cloudinary Storage
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const allowedFormats = ["png", "jpg", "jpeg", "webp"];
-    const fileFormat = file.mimetype.split("/")[1];
+// Multer Cloudinary Storage for Images
+const imageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        const allowedFormats = ["png", "jpg", "jpeg", "webp"];
+        const fileFormat = file.mimetype.split("/")[1];
 
-    if (!allowedFormats.includes(fileFormat)) {
-      return Promise.reject(
-        new Error("Invalid file format. Only PNG, JPG, and JPEG are allowed.")
-      );
+        if (!allowedFormats.includes(fileFormat)) {
+            return Promise.reject(new Error("Invalid file format. Only PNG, JPG, and JPEG are allowed."));
+        }
+
+        return {
+            folder: "blog_images",
+            format: fileFormat,
+            public_id: file.originalname.split(".")[0],
+        };
+    },
+});
+
+const imageUpload = multer({
+    storage: imageStorage,
+    limits: { fileSize: 3 * 1024 * 1024 }, // Limit file size to 3MB
+});
+
+// Multer Cloudinary Storage for Videos
+const videoStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+        const allowedFormats = ["mp4", "mov", "avi"];
+        const fileFormat = file.mimetype.split("/")[1];
+
+        if (!allowedFormats.includes(fileFormat)) {
+            return Promise.reject(new Error("Invalid file format. Only MP4, MOV, and AVI are allowed."));
+        }
+
+        return {
+            folder: "blog_videos",
+            format: fileFormat,
+            public_id: file.originalname.split(".")[0],
+            resource_type: "video", // Ensure this is set for video uploads
+        };
+    },
+});
+
+const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // Limit file size to 10MB
+});
+
+// Image Upload Route
+app.post("/api/upload", imageUpload.single("file"), (req, res) => {
+    if (!req.file || !req.file.path) {
+        return res.status(400).json({ message: "Invalid file upload. Ensure it is PNG, JPG, or JPEG and below 3MB." });
     }
-
-    return {
-      folder: "blog_images",
-      format: fileFormat,
-      public_id: file.originalname.split(".")[0],
-    };
-  },
+    res.status(200).json({ message: "File has been uploaded", url: req.file.path });
 });
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 3 * 1024 * 1024 }, // Limit file size to 3MB
+// Video Upload Route
+app.post("/api/upload-video", videoUpload.single("file"), (req, res) => {
+    if (!req.file || !req.file.path) {
+        return res.status(400).json({ message: "Invalid file upload. Ensure it is MP4, MOV, or AVI and below 10MB." });
+    }
+    res.status(200).json({ message: "File has been uploaded", url: req.file.path });
 });
 
-// Upload Route
-app.post("/api/upload", upload.single("file"), (req, res) => {
-  if (!req.file || !req.file.path) {
-    return res.status(400).json({
-      message:
-        "Invalid file upload. Ensure it is PNG, JPG, or JPEG and below 3MB.",
-    });
-  }
-  res.status(200).json({ message: "File has been uploaded", url: req.file.path });
-});
-
-// API Routes
+// Routes
 app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/posts", postRoute);
 app.use("/api/comments", commentRoute);
 app.use("/api/stats", statsRoute);
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, "build")));
-
-// Handle React routing, return all requests to React app
+// Serve index.html for all unknown routes (Fallback for React Router)
+app.use(express.static("build"));
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
+    res.sendFile(path.resolve(__dirname, "build", "index.html"));
 });
 
 // Start Server
-const PORT = process.env.PORT || 7733;
-app.listen(PORT, () => {
-  console.log("Backend is running.");
+app.listen("7733" || process.env.PORT, () => {
+    console.log("Backend is running.");
 });
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+
+
+module.exports = app;
+
